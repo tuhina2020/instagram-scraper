@@ -55,7 +55,7 @@ class LockedStream(object):
         return getattr(self.file, 'flush', lambda: None)()
 
 original_stdout, original_stderr = sys.stdout, sys.stderr
-sys.stdout, sys.stderr = map(LockedStream, (sys.stdout, sys.stderr))
+# sys.stdout, sys.stderr = map(LockedStream, (sys.stdout, sys.stderr))
 
 def threaded_input(prompt):
     with input_lock:
@@ -385,6 +385,7 @@ class InstagramScraper(object):
 
     def __scrape_query(self, media_generator, executor=concurrent.futures.ThreadPoolExecutor(max_workers=MAX_CONCURRENT_DOWNLOADS)):
         """Scrapes the specified value for posted media."""
+        print('scraping posts', self.usernames)
         self.quit = False
         try:
             for value in self.usernames:
@@ -399,13 +400,15 @@ class InstagramScraper(object):
                     media_exec = concurrent.futures.ThreadPoolExecutor(max_workers=5)
 
                 iter = 0
+                print('scraping posts by username', value)
                 for item in tqdm.tqdm(media_generator(value), desc='Searching {0} for posts'.format(value), unit=" media",
                                       disable=self.quiet):
-                    if ((item['is_video'] is False and 'image' in self.media_types) or \
-                                (item['is_video'] is True and 'video' in self.media_types)
-                        ) and self.is_new_media(item):
-                        future = executor.submit(self.worker_wrapper, self.download, item, dst)
-                        future_to_item[future] = item
+                    print('we are loggin search posts')
+                    # if ((item['is_video'] is False and 'image' in self.media_types) or \
+                    #             (item['is_video'] is True and 'video' in self.media_types)
+                    #     ) and self.is_new_media(item):
+                    #     future = executor.submit(self.worker_wrapper, self.download, item, dst)
+                    #     future_to_item[future] = item
 
                     if self.include_location and 'location' not in item:
                         media_exec.submit(self.worker_wrapper, self.__get_location, item)
@@ -414,7 +417,11 @@ class InstagramScraper(object):
                         item['edge_media_to_comment']['data'] = list(self.query_comments_gen(item['shortcode']))
 
                     if self.media_metadata or self.comments or self.include_location:
-                        self.posts.append(item)
+                        obj = {
+                            "caption": item['edge_media_to_caption'],
+                            "tags": item['tags']
+                        }
+                        self.posts.append(obj)
 
                     iter = iter + 1
                     if self.maximum != 0 and iter >= self.maximum:
@@ -584,7 +591,11 @@ class InstagramScraper(object):
                         for future in tqdm.tqdm(concurrent.futures.as_completed(future_to_item), total=len(future_to_item),
                                                 desc='Downloading', disable=self.quiet):
                             item = future_to_item[future]
-
+                            obj = {
+                                "caption": item['edge_media_to_caption'],
+                                "tags": item['tags']
+                            }
+                            print('INSIDE SCRAPE')
                             if future.exception() is not None:
                                 self.logger.error(
                                     'Media at {0} generated an exception: {1}'.format(item['urls'], future.exception()))
@@ -633,11 +644,11 @@ class InstagramScraper(object):
 
         item = {'urls': [profile_pic_url], 'username': username, 'shortcode':'', 'created_time': 1286323200, '__typename': 'GraphProfilePic'}
 
-        if self.latest is False or os.path.isfile(dst + '/' + item['urls'][0].split('/')[-1]) is False:
-            for item in tqdm.tqdm([item], desc='Searching {0} for profile pic'.format(username), unit=" images",
-                                  ncols=0, disable=self.quiet):
-                future = executor.submit(self.worker_wrapper, self.download, item, dst)
-                future_to_item[future] = item
+        # if self.latest is False or os.path.isfile(dst + '/' + item['urls'][0].split('/')[-1]) is False:
+        # for item in tqdm.tqdm([item], desc='Searching {0} for profile pic'.format(username), unit=" images",
+        #                       ncols=0, disable=self.quiet):
+        #     future = executor.submit(self.worker_wrapper, self.download, item, dst)
+        #     future_to_item[future] = item
 
     def get_stories(self, dst, executor, future_to_item, user, username):
         """Scrapes the user's stories."""
@@ -650,11 +661,11 @@ class InstagramScraper(object):
             iter = 0
             for item in tqdm.tqdm(stories, desc='Searching {0} for stories'.format(username), unit=" media",
                                   disable=self.quiet):
-                if self.story_has_selected_media_types(item) and self.is_new_media(item):
-                    item['username'] = username
-                    item['shortcode'] = ''
-                    future = executor.submit(self.worker_wrapper, self.download, item, dst)
-                    future_to_item[future] = item
+                # if self.story_has_selected_media_types(item) and self.is_new_media(item):
+                #     item['username'] = username
+                #     item['shortcode'] = ''
+                #     future = executor.submit(self.worker_wrapper, self.download, item, dst)
+                #     future_to_item[future] = item
 
                 iter = iter + 1
                 if self.maximum != 0 and iter >= self.maximum:
@@ -677,19 +688,20 @@ class InstagramScraper(object):
             if self.filter:
                 if 'tags' in item:
                     filtered = any(x in item['tags'] for x in self.filter)
-                    if self.has_selected_media_types(item) and self.is_new_media(item) and filtered:
-                        item['username']=username
-                        future = executor.submit(self.worker_wrapper, self.download, item, dst)
-                        future_to_item[future] = item
+                    # if self.has_selected_media_types(item) and self.is_new_media(item) and filtered:
+                    #     item['username']=username
+                    #     future = executor.submit(self.worker_wrapper, self.download, item, dst)
+                    #     future_to_item[future] = item
                 else:
                     # For when filter is on but media doesnt contain tags
                     pass
             # --------------#
             else:
-                if self.has_selected_media_types(item) and self.is_new_media(item):
-                    item['username']=username
-                    future = executor.submit(self.worker_wrapper, self.download, item, dst)
-                    future_to_item[future] = item
+                pass
+                # if self.has_selected_media_types(item) and self.is_new_media(item):
+                # item['username']=username
+                # future = executor.submit(self.worker_wrapper, self.download, item, dst)
+                # future_to_item[future] = item
 
             if self.include_location:
                 item['username']=username
