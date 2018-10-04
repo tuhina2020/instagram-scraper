@@ -385,7 +385,6 @@ class InstagramScraper(object):
 
     def __scrape_query(self, media_generator, executor=concurrent.futures.ThreadPoolExecutor(max_workers=MAX_CONCURRENT_DOWNLOADS)):
         """Scrapes the specified value for posted media."""
-        print('scraping posts', self.usernames)
         self.quit = False
         try:
             for value in self.usernames:
@@ -400,10 +399,8 @@ class InstagramScraper(object):
                     media_exec = concurrent.futures.ThreadPoolExecutor(max_workers=5)
 
                 iter = 0
-                print('scraping posts by username', value)
                 for item in tqdm.tqdm(media_generator(value), desc='Searching {0} for posts'.format(value), unit=" media",
                                       disable=self.quiet):
-                    print('we are loggin search posts')
                     # if ((item['is_video'] is False and 'image' in self.media_types) or \
                     #             (item['is_video'] is True and 'video' in self.media_types)
                     #     ) and self.is_new_media(item):
@@ -418,8 +415,7 @@ class InstagramScraper(object):
 
                     if self.media_metadata or self.comments or self.include_location:
                         obj = {
-                            "caption": item['edge_media_to_caption'],
-                            "tags": item['tags']
+                            "caption": item['edge_media_to_caption']["edges"][0]["node"]["text"]
                         }
                         self.posts.append(obj)
 
@@ -476,6 +472,7 @@ class InstagramScraper(object):
     def __query(self, url, variables, entity_name, query, end_cursor):
         params = variables.format(query, end_cursor)
         self.update_ig_gis_header(params)
+
 
         resp = self.get_json(url.format(params))
 
@@ -592,10 +589,8 @@ class InstagramScraper(object):
                                                 desc='Downloading', disable=self.quiet):
                             item = future_to_item[future]
                             obj = {
-                                "caption": item['edge_media_to_caption'],
-                                "tags": item['tags']
+                                "caption": item['edge_media_to_caption']["edges"][0]["node"]["text"],
                             }
-                            print('INSIDE SCRAPE')
                             if future.exception() is not None:
                                 self.logger.error(
                                     'Media at {0} generated an exception: {1}'.format(item['urls'], future.exception()))
