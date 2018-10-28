@@ -15,6 +15,8 @@ import re
 import sys
 import textwrap
 import time
+import mandrill
+
 
 try:
     from urllib.parse import urlparse
@@ -156,6 +158,12 @@ class InstagramScraper(object):
             else:
                 self.logger.info( 'The user has chosen to abort' )
                 return None
+
+    def urlencode(s):
+        return urllib2.quote(s)
+
+    def urldecode(s):
+        return urllib2.unquote(s).decode('utf8')
 
     def safe_get(self, *args, **kwargs):
         # out of the box solution
@@ -399,7 +407,7 @@ class InstagramScraper(object):
                     media_exec = concurrent.futures.ThreadPoolExecutor(max_workers=5)
 
                 iter = 0
-                for item in tqdm.tqdm(media_generator(value), desc='Searching {0} for posts'.format(value), unit=" media",
+                for item in tqdm.tqdm(media_generator(value), unit=" media",
                                       disable=self.quiet):
                     # if ((item['is_video'] is False and 'image' in self.media_types) or \
                     #             (item['is_video'] is True and 'video' in self.media_types)
@@ -407,26 +415,36 @@ class InstagramScraper(object):
                     #     future = executor.submit(self.worker_wrapper, self.download, item, dst)
                     #     future_to_item[future] = item
 
-                    if self.include_location and 'location' not in item:
-                        media_exec.submit(self.worker_wrapper, self.__get_location, item)
+                    # if self.include_location and 'location' not in item:
+                    #     media_exec.submit(self.worker_wrapper, self.__get_location, item)
 
-                    if self.comments:
-                        item['edge_media_to_comment']['data'] = list(self.query_comments_gen(item['shortcode']))
-
+                    # if self.comments:
+                    #     item['edge_media_to_comment']['data'] = list(self.query_comments_gen(item['shortcode']))
                     if self.media_metadata or self.comments or self.include_location:
-                        obj = {
-                            "caption": item['edge_media_to_caption']["edges"][0]["node"]["text"]
-                        }
+                        obj = {}
+                        try:
+                            obj = {
+                                "caption": item.get("edge_media_to_caption").get("edges", [])[0].get("node", {"text": ''}).get("text"),
+                                "tags": item.get("tags", [])
+                            }
+                        except:
+                            print(item)
+                            obj = {}
                         self.posts.append(obj)
+                            # break
 
                     iter = iter + 1
+                    print('ITER : ', len(self.posts), iter, self.maximum)
+                    if iter >= 1000 and iter % 1000 == 0 and (self.media_metadata or self.comments or self.include_location) and self.posts:
+                        self.append_json(self.posts, '{0}/{1}.json'.format(dst, value))
                     if self.maximum != 0 and iter >= self.maximum:
                         break
 
                 if future_to_item:
                     for future in tqdm.tqdm(concurrent.futures.as_completed(future_to_item),
-                                            total=len(future_to_item),
-                                            desc='Downloading', disable=self.quiet):
+                                            total=len(future_to_item)
+                                            # desc='Downloading', disable=self.quiet
+                                        ):
                         item = future_to_item[future]
 
                         if future.exception() is not None:
@@ -442,12 +460,15 @@ class InstagramScraper(object):
                     self.set_last_scraped_timestamp(value, greatest_timestamp)
 
                 if (self.media_metadata or self.comments or self.include_location) and self.posts:
-                    self.save_json(self.posts, '{0}/{1}.json'.format(dst, value))
+                    pass
+                    # self.save_json(self.posts, '{0}/{1}.json'.format(dst, value))
         finally:
             self.quit = True
 
     def query_hashtag_gen(self, hashtag):
-        return self.__query_gen(QUERY_HASHTAG, QUERY_HASHTAG_VARS, 'hashtag', hashtag)
+        a = self.__query_gen(QUERY_HASHTAG, QUERY_HASHTAG_VARS, 'hashtag', hashtag)
+        print(a, 'WE ARE HERE')
+        return a
 
     def query_location_gen(self, location):
         return self.__query_gen(QUERY_LOCATION, QUERY_LOCATION_VARS, 'location', location)
@@ -455,7 +476,7 @@ class InstagramScraper(object):
     def __query_gen(self, url, variables, entity_name, query, end_cursor=''):
         """Generator for hashtag and location."""
         nodes, end_cursor = self.__query(url, variables, entity_name, query, end_cursor)
-
+        # print(nodes, '!!!!!!yoyo')
         if nodes:
             try:
                 while True:
@@ -473,11 +494,11 @@ class InstagramScraper(object):
         params = variables.format(query, end_cursor)
         self.update_ig_gis_header(params)
 
-
         resp = self.get_json(url.format(params))
 
         if resp is not None:
             payload = json.loads(resp)['data'][entity_name]
+            print(url.format(params),'!!!!!!url')
 
             if payload:
                 nodes = []
@@ -490,6 +511,8 @@ class InstagramScraper(object):
 
                 nodes.extend(self._get_nodes(posts))
                 end_cursor = posts['page_info']['end_cursor']
+                os.environ["INSTAGRAM_LAST_SCRAPED_CURSOR"] = end_cursor
+                print(len(nodes), end_cursor,'!!!!!!nodes', entity_name)
                 return nodes, end_cursor
 
         return None, None
@@ -500,32 +523,32 @@ class InstagramScraper(object):
     def augment_node(self, node):
         self.extract_tags(node)
 
-        details = None
-        if self.include_location and 'location' not in node:
-            details = self.__get_media_details(node['shortcode'])
-            node['location'] = details.get('location') if details else None
+        # details = None
+        # if self.include_location and 'location' not in node:
+        #     details = self.__get_media_details(node['shortcode'])
+        #     node['location'] = details.get('location') if details else None
 
-        if 'urls' not in node:
-            node['urls'] = []
+        # if 'urls' not in node:
+        #     node['urls'] = []
 
-        if node['is_video'] and 'video_url' in node:
-            node['urls'] = [node['video_url']]
-        elif '__typename' in node and node['__typename'] == 'GraphImage':
-            node['urls'] = [self.get_original_image(node['display_url'])]
-        else:
-            if details is None:
-                details = self.__get_media_details(node['shortcode'])
+        # if node['is_video'] and 'video_url' in node:
+        #     node['urls'] = [node['video_url']]
+        # elif '__typename' in node and node['__typename'] == 'GraphImage':
+        #     node['urls'] = [self.get_original_image(node['display_url'])]
+        # else:
+        #     if details is None:
+        #         details = self.__get_media_details(node['shortcode'])
 
-            if details:
-                if '__typename' in details and details['__typename'] == 'GraphVideo':
-                    node['urls'] = [details['video_url']]
-                elif '__typename' in details and details['__typename'] == 'GraphSidecar':
-                    urls = []
-                    for carousel_item in details['edge_sidecar_to_children']['edges']:
-                        urls += self.augment_node(carousel_item['node'])['urls']
-                    node['urls'] = urls
-                else:
-                    node['urls'] = [self.get_original_image(details['display_url'])]
+        #     if details:
+        #         if '__typename' in details and details['__typename'] == 'GraphVideo':
+        #             node['urls'] = [details['video_url']]
+        #         elif '__typename' in details and details['__typename'] == 'GraphSidecar':
+        #             urls = []
+        #             for carousel_item in details['edge_sidecar_to_children']['edges']:
+        #                 urls += self.augment_node(carousel_item['node'])['urls']
+        #             node['urls'] = urls
+        #         else:
+        #             node['urls'] = [self.get_original_image(details['display_url'])]
 
         return node
 
@@ -542,11 +565,12 @@ class InstagramScraper(object):
             self.logger.warning('Failed to get media details for ' + shortcode)
 
     def __get_location(self, item):
-        code = item.get('shortcode', item.get('code'))
+        pass
+        # code = item.get('shortcode', item.get('code'))
 
-        if code:
-            details = self.__get_media_details(code)
-            item['location'] = details.get('location')
+        # if code:
+        #     details = self.__get_media_details(code)
+        #     item['location'] = details.get('location')
 
     def scrape(self, executor=concurrent.futures.ThreadPoolExecutor(max_workers=MAX_CONCURRENT_DOWNLOADS)):
         """Crawls through and downloads user's media"""
@@ -586,7 +610,8 @@ class InstagramScraper(object):
                     # the above loop finishes.
                     if future_to_item:
                         for future in tqdm.tqdm(concurrent.futures.as_completed(future_to_item), total=len(future_to_item),
-                                                desc='Downloading', disable=self.quiet):
+                                                # desc='Downloading',
+                                                disable=self.quiet):
                             item = future_to_item[future]
                             obj = {
                                 "caption": item['edge_media_to_caption']["edges"][0]["node"]["text"],
@@ -654,8 +679,10 @@ class InstagramScraper(object):
 
             # Downloads the user's stories and sends it to the executor.
             iter = 0
-            for item in tqdm.tqdm(stories, desc='Searching {0} for stories'.format(username), unit=" media",
-                                  disable=self.quiet):
+            for item in tqdm.tqdm(stories, 
+                # desc='Searching {0} for stories'.format(username),
+                unit=" media",
+                disable=self.quiet):
                 # if self.story_has_selected_media_types(item) and self.is_new_media(item):
                 #     item['username'] = username
                 #     item['shortcode'] = ''
@@ -677,7 +704,8 @@ class InstagramScraper(object):
             media_exec = concurrent.futures.ThreadPoolExecutor(max_workers=5)
 
         iter = 0
-        for item in tqdm.tqdm(self.query_media_gen(user), desc='Searching {0} for posts'.format(username),
+        for item in tqdm.tqdm(self.query_media_gen(user),
+            # desc='Searching {0} for posts'.format(username),
                               unit=' media', disable=self.quiet):
             # -Filter command line
             if self.filter:
@@ -1049,6 +1077,18 @@ class InstagramScraper(object):
                 json.dump(data, codecs.getwriter('utf-8')(f), indent=4, sort_keys=True, ensure_ascii=False)
 
     @staticmethod
+    def append_json(data, dst='./'):
+        """Saves the data to a json file."""
+        if not os.path.exists(os.path.dirname(dst)):
+            os.makedirs(os.path.dirname(dst))
+        if data:
+            with open(dst, 'a') as f:
+                for i in data:
+                    if !bool(i) :
+                        json.dump(i, f)
+                        f.write("\n")
+
+    @staticmethod
     def get_logger(level=logging.DEBUG, verbose=0):
         """Returns a logger."""
         logger = logging.getLogger(__name__)
@@ -1187,9 +1227,9 @@ def main():
 
     args = parser.parse_args()
 
-    if (args.login_user and args.login_pass is None) or (args.login_user is None and args.login_pass):
-        parser.print_help()
-        raise ValueError('Must provide login user AND password')
+    # if (args.login_user and args.login_pass is None) or (args.login_user is None and args.login_pass):
+    #     parser.print_help()
+    #     raise ValueError('Must provide login user AND password')
 
     if not args.username and args.filename is None:
         parser.print_help()
