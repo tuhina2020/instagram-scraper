@@ -511,7 +511,6 @@ class InstagramScraper(object):
 
                 nodes.extend(self._get_nodes(posts))
                 end_cursor = posts['page_info']['end_cursor']
-                os.environ["INSTAGRAM_LAST_SCRAPED_CURSOR"] = end_cursor
                 # print(len(nodes), end_cursor,'!!!!!!nodes', entity_name)
                 return nodes, end_cursor
 
@@ -1082,11 +1081,11 @@ class InstagramScraper(object):
         if not os.path.exists(os.path.dirname(dst)):
             os.makedirs(os.path.dirname(dst))
         if data:
-            with open(dst, 'a') as f:
+            with open(dst, 'ab') as f:
                 for i in data:
                     if bool(i) :
-                        json.dump(i, f)
-                        f.write("\n")
+                        json.dump(i, codecs.getwriter('utf-8')(f), ensure_ascii=False)
+                        f.write(b"\n")
 
     @staticmethod
     def emailFile(dst, template='', emails=[]):
