@@ -9,14 +9,14 @@ import glob
 from operator import itemgetter
 import json
 import logging.config
+from logging import handlers
 import hashlib
 import os
 import re
 import sys
 import textwrap
 import time
-import mandrill
-
+import datetime 
 
 try:
     from urllib.parse import urlparse
@@ -428,15 +428,15 @@ class InstagramScraper(object):
                                 "tags": item.get("tags", [])
                             }
                         except:
-                            print(item)
                             obj = {}
                         self.posts.append(obj)
-                            # break
 
                     iter = iter + 1
-                    print('ITER : ', len(self.posts), iter, self.maximum)
-                    if iter >= 1000 and iter % 1000 == 0 and (self.media_metadata or self.comments or self.include_location) and self.posts:
-                        self.append_json(self.posts, '{0}/{1}.json'.format(dst, value))
+                    print('ITERATION COUNT : ', len(self.posts), iter, self.maximum)
+                    if iter >= 10000 and iter % 10000 == 0 and (self.media_metadata or self.comments or self.include_location) and self.posts:
+                        date = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
+                        self.append_json(self.posts, '{0}/{1}_{2}_{3}.json'.format(dst, value, date, str(iter)))
+                        self.posts = []
                     if self.maximum != 0 and iter >= self.maximum:
                         break
 
@@ -512,7 +512,7 @@ class InstagramScraper(object):
                 nodes.extend(self._get_nodes(posts))
                 end_cursor = posts['page_info']['end_cursor']
                 os.environ["INSTAGRAM_LAST_SCRAPED_CURSOR"] = end_cursor
-                print(len(nodes), end_cursor,'!!!!!!nodes', entity_name)
+                # print(len(nodes), end_cursor,'!!!!!!nodes', entity_name)
                 return nodes, end_cursor
 
         return None, None
@@ -1077,16 +1077,34 @@ class InstagramScraper(object):
                 json.dump(data, codecs.getwriter('utf-8')(f), indent=4, sort_keys=True, ensure_ascii=False)
 
     @staticmethod
-    def append_json(data, dst='./'):
+    def append_json(data, dst='./', iter=1):
         """Saves the data to a json file."""
         if not os.path.exists(os.path.dirname(dst)):
             os.makedirs(os.path.dirname(dst))
         if data:
             with open(dst, 'a') as f:
                 for i in data:
-                    if !bool(i) :
+                    if bool(i) :
                         json.dump(i, f)
                         f.write("\n")
+
+    @staticmethod
+    def emailFile(dst, template='', emails=[]):
+        mandrill_client = mandrill.Mandrill(MANDRILL_API_KEY)
+        message = {
+            'from_email': 'admin@elanic.in',
+            'from_name': 'Elanic Tech',
+            'to': [{
+                'email': 'tuhina@elanic.in',
+                'name': 'Tuhina',
+                'type': 'to'
+            }],
+            'subject': "Testing out Mandrill",
+            'text': 'This is a message from Mandrill'
+        }
+        result = mandrill_client.messages.send(message = message)
+        return
+
 
     @staticmethod
     def get_logger(level=logging.DEBUG, verbose=0):

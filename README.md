@@ -3,9 +3,9 @@
 ```
      git clone https://github.com/tuhina2020/instagram-scraper.git
 
-     cd instagram-scraper/instagram_scraper
+     cd instagram-scraper
 
      chmod +x app.py
 
-     python app.py --tag elanic --maximum 20000 --destination ./ --login-user swati__34 -p elanic1234 --media_metadata
+     python ./instagram_scraper/app.py --tag jutti --maximum 20000000 --destination ./results --login-user testing_23_account109 -p redred1234 --media_metadata
 ```

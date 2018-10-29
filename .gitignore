@@ -10,3 +10,6 @@ insta_args.txt
 .idea
 README.rst
 *.sh
+.DS_Store
+instagram_scraper/.DS_Store
+results
