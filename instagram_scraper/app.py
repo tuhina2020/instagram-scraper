@@ -437,6 +437,8 @@ class InstagramScraper(object):
                         self.append_json(self.posts, '{0}/{1}_{2}_{3}.json'.format(dst, value, date, str(iter)))
                         self.posts = []
                     if self.maximum != 0 and iter >= self.maximum:
+                        date = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
+                        self.append_json(self.posts, '{0}/{1}_{2}_{3}.json'.format(dst, value, date, str(iter)))
                         break
 
                 if future_to_item:
