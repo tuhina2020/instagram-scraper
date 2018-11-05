@@ -362,7 +362,6 @@ class InstagramScraper(object):
     def __query_comments(self, shortcode, end_cursor=''):
         params = QUERY_COMMENTS_VARS.format(shortcode, end_cursor)
         self.update_ig_gis_header(params)
-
         resp = self.get_json(QUERY_COMMENTS.format(params))
 
         if resp is not None:
@@ -467,7 +466,6 @@ class InstagramScraper(object):
 
     def query_hashtag_gen(self, hashtag):
         a = self.__query_gen(QUERY_HASHTAG, QUERY_HASHTAG_VARS, 'hashtag', hashtag)
-        print(a, 'WE ARE HERE')
         return a
 
     def query_location_gen(self, location):
@@ -475,8 +473,8 @@ class InstagramScraper(object):
 
     def __query_gen(self, url, variables, entity_name, query, end_cursor=''):
         """Generator for hashtag and location."""
+        # print(url,variables, entity_name, query , '!!!!!!yoyo')
         nodes, end_cursor = self.__query(url, variables, entity_name, query, end_cursor)
-        # print(nodes, '!!!!!!yoyo')
         if nodes:
             try:
                 while True:
@@ -498,7 +496,6 @@ class InstagramScraper(object):
 
         if resp is not None:
             payload = json.loads(resp)['data'][entity_name]
-            print(url.format(params),'!!!!!!url')
 
             if payload:
                 nodes = []
@@ -743,6 +740,8 @@ class InstagramScraper(object):
 
     def get_shared_data(self, username=''):
         """Fetches the user's metadata."""
+        if username == '' :
+            username = self.login_user
         resp = self.get_json(BASE_URL + username)
 
         if resp is not None and '_sharedData' in resp:
