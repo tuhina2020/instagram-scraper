@@ -16,7 +16,8 @@ import re
 import sys
 import textwrap
 import time
-import datetime 
+import datetime
+from unidecode import unidecode
 
 try:
     from urllib.parse import urlparse
@@ -520,6 +521,7 @@ class InstagramScraper(object):
 
     def augment_node(self, node):
         self.extract_tags(node)
+        return node
 
         # details = None
         # if self.include_location and 'location' not in node:
@@ -548,197 +550,196 @@ class InstagramScraper(object):
         #         else:
         #             node['urls'] = [self.get_original_image(details['display_url'])]
 
-        return node
 
-    def __get_media_details(self, shortcode):
-        resp = self.get_json(VIEW_MEDIA_URL.format(shortcode))
+    # def __get_media_details(self, shortcode):
+    #     resp = self.get_json(VIEW_MEDIA_URL.format(shortcode))
 
-        if resp is not None:
-            try:
-                return json.loads(resp)['graphql']['shortcode_media']
-            except ValueError:
-                self.logger.warning('Failed to get media details for ' + shortcode)
+    #     if resp is not None:
+    #         try:
+    #             return json.loads(resp)['graphql']['shortcode_media']
+    #         except ValueError:
+    #             self.logger.warning('Failed to get media details for ' + shortcode)
 
-        else:
-            self.logger.warning('Failed to get media details for ' + shortcode)
+    #     else:
+    #         self.logger.warning('Failed to get media details for ' + shortcode)
 
-    def __get_location(self, item):
-        pass
+    # def __get_location(self, item):
+    #     pass
         # code = item.get('shortcode', item.get('code'))
 
         # if code:
         #     details = self.__get_media_details(code)
         #     item['location'] = details.get('location')
 
-    def scrape(self, executor=concurrent.futures.ThreadPoolExecutor(max_workers=MAX_CONCURRENT_DOWNLOADS)):
-        """Crawls through and downloads user's media"""
-        self.session.headers = {'user-agent': STORIES_UA}
-        try:
-            for username in self.usernames:
-                self.posts = []
-                self.last_scraped_filemtime = 0
-                greatest_timestamp = 0
-                future_to_item = {}
+    # def scrape(self, executor=concurrent.futures.ThreadPoolExecutor(max_workers=MAX_CONCURRENT_DOWNLOADS)):
+    #     """Crawls through and downloads user's media"""
+    #     self.session.headers = {'user-agent': STORIES_UA}
+    #     try:
+    #         for username in self.usernames:
+    #             self.posts = []
+    #             self.last_scraped_filemtime = 0
+    #             greatest_timestamp = 0
+    #             future_to_item = {}
 
-                dst = self.get_dst_dir(username)
+    #             dst = self.get_dst_dir(username)
 
-                # Get the user metadata.
-                shared_data = self.get_shared_data(username)
-                user = self.deep_get(shared_data, 'entry_data.ProfilePage[0].graphql.user')
+    #             # Get the user metadata.
+    #             shared_data = self.get_shared_data(username)
+    #             user = self.deep_get(shared_data, 'entry_data.ProfilePage[0].graphql.user')
 
-                if not user:
-                    self.logger.error(
-                        'Error getting user details for {0}. Please verify that the user exists.'.format(username))
-                    continue
-                elif user and user['is_private'] and user['edge_owner_to_timeline_media']['count'] > 0 and not \
-                    user['edge_owner_to_timeline_media']['edges']:
-                        self.logger.error('User {0} is private'.format(username))
+    #             if not user:
+    #                 self.logger.error(
+    #                     'Error getting user details for {0}. Please verify that the user exists.'.format(username))
+    #                 continue
+    #             elif user and user['is_private'] and user['edge_owner_to_timeline_media']['count'] > 0 and not \
+    #                 user['edge_owner_to_timeline_media']['edges']:
+    #                     self.logger.error('User {0} is private'.format(username))
 
-                self.rhx_gis = shared_data['rhx_gis']
+    #             self.rhx_gis = shared_data['rhx_gis']
 
-                self.get_profile_pic(dst, executor, future_to_item, user, username)
-                self.get_stories(dst, executor, future_to_item, user, username)
+    #             # self.get_profile_pic(dst, executor, future_to_item, user, username)
+    #             # self.get_stories(dst, executor, future_to_item, user, username)
 
-                # Crawls the media and sends it to the executor.
-                try:
+    #             # Crawls the media and sends it to the executor.
+    #             try:
 
-                    self.get_media(dst, executor, future_to_item, user)
+    #                 self.get_media(dst, executor, future_to_item, user)
 
-                    # Displays the progress bar of completed downloads. Might not even pop up if all media is downloaded while
-                    # the above loop finishes.
-                    if future_to_item:
-                        for future in tqdm.tqdm(concurrent.futures.as_completed(future_to_item), total=len(future_to_item),
-                                                # desc='Downloading',
-                                                disable=self.quiet):
-                            item = future_to_item[future]
-                            obj = {
-                                "caption": item['edge_media_to_caption']["edges"][0]["node"]["text"],
-                            }
-                            if future.exception() is not None:
-                                self.logger.error(
-                                    'Media at {0} generated an exception: {1}'.format(item['urls'], future.exception()))
-                            else:
-                                timestamp = self.__get_timestamp(item)
-                                if timestamp > greatest_timestamp:
-                                    greatest_timestamp = timestamp
-                    # Even bother saving it?
-                    if greatest_timestamp > self.last_scraped_filemtime:
-                        self.set_last_scraped_timestamp(username, greatest_timestamp)
+    #                 # Displays the progress bar of completed downloads. Might not even pop up if all media is downloaded while
+    #                 # the above loop finishes.
+    #                 if future_to_item:
+    #                     for future in tqdm.tqdm(concurrent.futures.as_completed(future_to_item), total=len(future_to_item),
+    #                                             # desc='Downloading',
+    #                                             disable=self.quiet):
+    #                         item = future_to_item[future]
+    #                         obj = {
+    #                             "caption": item['edge_media_to_caption']["edges"][0]["node"]["text"],
+    #                         }
+    #                         if future.exception() is not None:
+    #                             self.logger.error(
+    #                                 'Media at {0} generated an exception: {1}'.format(item['urls'], future.exception()))
+    #                         else:
+    #                             timestamp = self.__get_timestamp(item)
+    #                             if timestamp > greatest_timestamp:
+    #                                 greatest_timestamp = timestamp
+    #                 # Even bother saving it?
+    #                 if greatest_timestamp > self.last_scraped_filemtime:
+    #                     self.set_last_scraped_timestamp(username, greatest_timestamp)
 
-                    if (self.media_metadata or self.comments or self.include_location) and self.posts:
-                        self.save_json(self.posts, '{0}/{1}.json'.format(dst, username))
-                except ValueError:
-                    self.logger.error("Unable to scrape user - %s" % username)
-        finally:
-            self.quit = True
-            self.logout()
+    #                 if (self.media_metadata or self.comments or self.include_location) and self.posts:
+    #                     self.save_json(self.posts, '{0}/{1}.json'.format(dst, username))
+    #             except ValueError:
+    #                 self.logger.error("Unable to scrape user - %s" % username)
+    #     finally:
+    #         self.quit = True
+    #         self.logout()
 
-    def get_profile_pic(self, dst, executor, future_to_item, user, username):
-        if 'image' not in self.media_types:
-            return
+    # def get_profile_pic(self, dst, executor, future_to_item, user, username):
+    #     if 'image' not in self.media_types:
+    #         return
 
-        url = USER_INFO.format(user['id'])
-        resp = self.get_json(url)
+    #     url = USER_INFO.format(user['id'])
+    #     resp = self.get_json(url)
 
-        if resp is None:
-            self.logger.error('Error getting user info for {0}'.format(username))
-            return
+    #     if resp is None:
+    #         self.logger.error('Error getting user info for {0}'.format(username))
+    #         return
 
-        user_info = json.loads(resp)['user']
+    #     user_info = json.loads(resp)['user']
 
-        if user_info['has_anonymous_profile_picture']:
-            return
+    #     if user_info['has_anonymous_profile_picture']:
+    #         return
 
-        try:
-            profile_pic_urls = [
-                user_info['hd_profile_pic_url_info']['url'],
-                user_info['hd_profile_pic_versions'][-1]['url'],
-            ]
+    #     try:
+    #         profile_pic_urls = [
+    #             user_info['hd_profile_pic_url_info']['url'],
+    #             user_info['hd_profile_pic_versions'][-1]['url'],
+    #         ]
 
-            profile_pic_url = next(url for url in profile_pic_urls if url is not None)
-        except (KeyError, IndexError, StopIteration):
-            self.logger.warning('Failed to get high resolution profile picture for {0}'.format(username))
-            profile_pic_url = user['profile_pic_url_hd']
+    #         profile_pic_url = next(url for url in profile_pic_urls if url is not None)
+    #     except (KeyError, IndexError, StopIteration):
+    #         self.logger.warning('Failed to get high resolution profile picture for {0}'.format(username))
+    #         profile_pic_url = user['profile_pic_url_hd']
 
-        item = {'urls': [profile_pic_url], 'username': username, 'shortcode':'', 'created_time': 1286323200, '__typename': 'GraphProfilePic'}
+    #     item = {'urls': [profile_pic_url], 'username': username, 'shortcode':'', 'created_time': 1286323200, '__typename': 'GraphProfilePic'}
 
-        # if self.latest is False or os.path.isfile(dst + '/' + item['urls'][0].split('/')[-1]) is False:
-        # for item in tqdm.tqdm([item], desc='Searching {0} for profile pic'.format(username), unit=" images",
-        #                       ncols=0, disable=self.quiet):
-        #     future = executor.submit(self.worker_wrapper, self.download, item, dst)
-        #     future_to_item[future] = item
+    #     # if self.latest is False or os.path.isfile(dst + '/' + item['urls'][0].split('/')[-1]) is False:
+    #     # for item in tqdm.tqdm([item], desc='Searching {0} for profile pic'.format(username), unit=" images",
+    #     #                       ncols=0, disable=self.quiet):
+    #     #     future = executor.submit(self.worker_wrapper, self.download, item, dst)
+    #     #     future_to_item[future] = item
 
-    def get_stories(self, dst, executor, future_to_item, user, username):
-        """Scrapes the user's stories."""
-        if self.logged_in and \
-                ('story-image' in self.media_types or 'story-video' in self.media_types):
-            # Get the user's stories.
-            stories = self.fetch_stories(user['id'])
+    # def get_stories(self, dst, executor, future_to_item, user, username):
+    #     """Scrapes the user's stories."""
+    #     if self.logged_in and \
+    #             ('story-image' in self.media_types or 'story-video' in self.media_types):
+    #         # Get the user's stories.
+    #         stories = self.fetch_stories(user['id'])
 
-            # Downloads the user's stories and sends it to the executor.
-            iter = 0
-            for item in tqdm.tqdm(stories, 
-                # desc='Searching {0} for stories'.format(username),
-                unit=" media",
-                disable=self.quiet):
-                # if self.story_has_selected_media_types(item) and self.is_new_media(item):
-                #     item['username'] = username
-                #     item['shortcode'] = ''
-                #     future = executor.submit(self.worker_wrapper, self.download, item, dst)
-                #     future_to_item[future] = item
+    #         # Downloads the user's stories and sends it to the executor.
+    #         iter = 0
+    #         for item in tqdm.tqdm(stories, 
+    #             # desc='Searching {0} for stories'.format(username),
+    #             unit=" media",
+    #             disable=self.quiet):
+    #             # if self.story_has_selected_media_types(item) and self.is_new_media(item):
+    #             #     item['username'] = username
+    #             #     item['shortcode'] = ''
+    #             #     future = executor.submit(self.worker_wrapper, self.download, item, dst)
+    #             #     future_to_item[future] = item
 
-                iter = iter + 1
-                if self.maximum != 0 and iter >= self.maximum:
-                    break
+    #             iter = iter + 1
+    #             if self.maximum != 0 and iter >= self.maximum:
+    #                 break
 
-    def get_media(self, dst, executor, future_to_item, user):
-        """Scrapes the user's posts for media."""
-        if 'image' not in self.media_types and 'video' not in self.media_types and 'none' not in self.media_types:
-            return
+    # def get_media(self, dst, executor, future_to_item, user):
+    #     """Scrapes the user's posts for media."""
+    #     if 'image' not in self.media_types and 'video' not in self.media_types and 'none' not in self.media_types:
+    #         return
 
-        username = user['username']
+    #     username = user['username']
 
-        if self.include_location:
-            media_exec = concurrent.futures.ThreadPoolExecutor(max_workers=5)
+    #     if self.include_location:
+    #         media_exec = concurrent.futures.ThreadPoolExecutor(max_workers=5)
 
-        iter = 0
-        for item in tqdm.tqdm(self.query_media_gen(user),
-            # desc='Searching {0} for posts'.format(username),
-                              unit=' media', disable=self.quiet):
-            # -Filter command line
-            if self.filter:
-                if 'tags' in item:
-                    filtered = any(x in item['tags'] for x in self.filter)
-                    # if self.has_selected_media_types(item) and self.is_new_media(item) and filtered:
-                    #     item['username']=username
-                    #     future = executor.submit(self.worker_wrapper, self.download, item, dst)
-                    #     future_to_item[future] = item
-                else:
-                    # For when filter is on but media doesnt contain tags
-                    pass
-            # --------------#
-            else:
-                pass
-                # if self.has_selected_media_types(item) and self.is_new_media(item):
-                # item['username']=username
-                # future = executor.submit(self.worker_wrapper, self.download, item, dst)
-                # future_to_item[future] = item
+    #     iter = 0
+    #     for item in tqdm.tqdm(self.query_media_gen(user),
+    #         # desc='Searching {0} for posts'.format(username),
+    #                           unit=' media', disable=self.quiet):
+    #         # -Filter command line
+    #         if self.filter:
+    #             if 'tags' in item:
+    #                 filtered = any(x in item['tags'] for x in self.filter)
+    #                 # if self.has_selected_media_types(item) and self.is_new_media(item) and filtered:
+    #                 #     item['username']=username
+    #                 #     future = executor.submit(self.worker_wrapper, self.download, item, dst)
+    #                 #     future_to_item[future] = item
+    #             else:
+    #                 # For when filter is on but media doesnt contain tags
+    #                 pass
+    #         # --------------#
+    #         else:
+    #             pass
+    #             # if self.has_selected_media_types(item) and self.is_new_media(item):
+    #             # item['username']=username
+    #             # future = executor.submit(self.worker_wrapper, self.download, item, dst)
+    #             # future_to_item[future] = item
 
-            if self.include_location:
-                item['username']=username
-                media_exec.submit(self.worker_wrapper, self.__get_location, item)
+    #         if self.include_location:
+    #             item['username']=username
+    #             media_exec.submit(self.worker_wrapper, self.__get_location, item)
 
-            if self.comments:
-                item['username']=username
-                item['comments'] = {'data': list(self.query_comments_gen(item['shortcode']))}
+    #         if self.comments:
+    #             item['username']=username
+    #             item['comments'] = {'data': list(self.query_comments_gen(item['shortcode']))}
 
-            if self.media_metadata or self.comments or self.include_location:
-                item['username']=username
-                self.posts.append(item)
+    #         if self.media_metadata or self.comments or self.include_location:
+    #             item['username']=username
+    #             self.posts.append(item)
 
-            iter = iter + 1
-            if self.maximum != 0 and iter >= self.maximum:
-                break
+    #         iter = iter + 1
+    #         if self.maximum != 0 and iter >= self.maximum:
+    #             break
 
     def get_shared_data(self, username=''):
         """Fetches the user's metadata."""
@@ -764,24 +765,24 @@ class InstagramScraper(object):
 
         return []
 
-    def query_media_gen(self, user, end_cursor=''):
-        """Generator for media."""
-        media, end_cursor = self.__query_media(user['id'], end_cursor)
+    # def query_media_gen(self, user, end_cursor=''):
+    #     """Generator for media."""
+    #     media, end_cursor = self.__query_media(user['id'], end_cursor)
 
-        if media:
-            try:
-                while True:
-                    for item in media:
-                        if not self.is_new_media(item):
-                            return
-                        yield item
+    #     if media:
+    #         try:
+    #             while True:
+    #                 for item in media:
+    #                     if not self.is_new_media(item):
+    #                         return
+    #                     yield item
 
-                    if end_cursor:
-                        media, end_cursor = self.__query_media(user['id'], end_cursor)
-                    else:
-                        return
-            except ValueError:
-                self.logger.exception('Failed to query media for user ' + user['username'])
+    #                 if end_cursor:
+    #                     media, end_cursor = self.__query_media(user['id'], end_cursor)
+    #                 else:
+    #                     return
+    #         except ValueError:
+    #             self.logger.exception('Failed to query media for user ' + user['username'])
 
     def __query_media(self, id, end_cursor=''):
         params = QUERY_MEDIA_VARS.format(id, end_cursor)
@@ -1082,28 +1083,17 @@ class InstagramScraper(object):
         if not os.path.exists(os.path.dirname(dst)):
             os.makedirs(os.path.dirname(dst))
         if data:
-            with open(dst, 'ab') as f:
+            with open(dst, 'a') as f:
                 for i in data:
                     if bool(i) :
-                        json.dump(i, codecs.getwriter('utf-8')(f), ensure_ascii=False)
-                        f.write(b"\n")
+                        json.dump(i, f)
+                        f.write("\n")
+
 
     @staticmethod
-    def emailFile(dst, template='', emails=[]):
-        mandrill_client = mandrill.Mandrill(MANDRILL_API_KEY)
-        message = {
-            'from_email': 'admin@elanic.in',
-            'from_name': 'Elanic Tech',
-            'to': [{
-                'email': 'tuhina@elanic.in',
-                'name': 'Tuhina',
-                'type': 'to'
-            }],
-            'subject': "Testing out Mandrill",
-            'text': 'This is a message from Mandrill'
-        }
-        result = mandrill_client.messages.send(message = message)
-        return
+    def remove_non_ascii(text):
+        print(text)
+        return unidecode(unicode(text, encoding = "utf-8"))
 
 
     @staticmethod
@@ -1282,12 +1272,6 @@ def main():
 
     if args.tag:
         scraper.scrape_hashtag()
-    elif args.location:
-        scraper.scrape_location()
-    elif args.search_location:
-        scraper.search_locations()
-    else:
-        scraper.scrape()
 
 
 if __name__ == '__main__':
