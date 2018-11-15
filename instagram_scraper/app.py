@@ -224,6 +224,7 @@ class InstagramScraper(object):
 
         login_data = {'username': self.login_user, 'password': self.login_pass}
         login = self.session.post(LOGIN_URL, data=login_data, allow_redirects=True)
+        print('LOGIN REQUEST : ', LOGIN_URL, login_data, self.login_user, self.login_pass)
         self.session.headers.update({'X-CSRFToken': login.cookies['csrftoken']})
         self.cookies = login.cookies
         login_text = json.loads(login.text)
@@ -1083,11 +1084,11 @@ class InstagramScraper(object):
         if not os.path.exists(os.path.dirname(dst)):
             os.makedirs(os.path.dirname(dst))
         if data:
-            with open(dst, 'a') as f:
+            with open(dst, 'wb') as f:
                 for i in data:
                     if bool(i) :
-                        json.dump(i, f)
-                        f.write("\n")
+                        json.dump(i, codecs.getwriter('utf-8')(f), ensure_ascii=False)
+                        f.write(b"\n")
 
 
     @staticmethod

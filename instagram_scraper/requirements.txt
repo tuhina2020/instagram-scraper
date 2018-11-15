@@ -1,7 +1,8 @@
-mandrill==1.0.57
-requests==2.19.1
-requests-mock==1.5.2
-tornado==5.1.1
-tqdm==4.26.0
-traitlets==4.3.2
-urllib3==1.23
+certifi==2018.10.15
+chardet==3.0.4
+idna==2.7
+instagram-scraper==1.5.40
+requests==2.20.1
+tqdm==4.28.1
+Unidecode==1.0.22
+urllib3==1.24.1
