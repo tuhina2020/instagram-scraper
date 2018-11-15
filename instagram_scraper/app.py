@@ -433,14 +433,15 @@ class InstagramScraper(object):
                         self.posts.append(obj)
 
                     iter = iter + 1
-                    print('ITERATION COUNT : ', len(self.posts), iter, self.maximum)
                     if iter >= 10000 and iter % 10000 == 0 and (self.media_metadata or self.comments or self.include_location) and self.posts:
                         date = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
                         self.append_json(self.posts, '{0}/{1}_{2}_{3}.json'.format(dst, value, date, str(iter)))
+                        print('ITERATION COUNT : ', len(self.posts), iter, self.maximum)
                         self.posts = []
                     if self.maximum != 0 and iter >= self.maximum:
                         date = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
                         self.append_json(self.posts, '{0}/{1}_{2}_{3}.json'.format(dst, value, date, str(iter)))
+                        print('ITERATION COUNT : ', len(self.posts), iter, self.maximum)
                         break
 
                 if future_to_item:
