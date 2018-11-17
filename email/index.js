@@ -6,9 +6,9 @@ const async = require('async');
 const fs = require('fs');
 const path = require('path');
 
-const sendmail = (directory, files) => {
+const sendmail = (directory, files, API_KEY) => {
 	const transport = nodemailer.createTransport(mandrillTransport({
-      auth: { apiKey: 'akHrUMZPZGg7tvYB8xSalQ' }
+      auth: { apiKey: API_KEY }
     }));
     const attachments = _.map(files, file => {
     	return {
@@ -40,7 +40,7 @@ const sendmail = (directory, files) => {
       merge: true,
       merge_language: 'handlebars',
     };
-    var mandrill_client = new mandrill.Mandrill('akHrUMZPZGg7tvYB8xSalQ');
+  var mandrill_client = new mandrill.Mandrill(API_KEY);
 	return transport.sendMail({
 	  mandrillOptions: {
 	    template_name: 'instagram_scraper_results',
@@ -61,10 +61,11 @@ const sendmail = (directory, files) => {
 	});
 }
 
-// node email/index.js jutti ../instagram_scraper/data
+// node email/index.js jutti ../instagram_scraper/data API_KEY
 const tag = process.argv[2];
 const p = process.argv[3];
+const API_KEY = process.argv[4]
 const timestamp = new Date().toISOString().split('T')[0];
 const r = tag + '_' + timestamp;
 const files = fs.readdirSync(p);
-sendmail(p, files)
+sendmail(p, files, API_KEY)
