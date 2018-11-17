@@ -22,7 +22,7 @@ const sendmail = (directory, files) => {
       attachments,
       from_email: 'no-reply@elanic.co',
       from_name: 'Elanic',
-      subject: 'lol we are',
+      subject: 'Instagram Scraper Results',
       headers: {
         'Reply-To': 'reach@elanic.in'
       },
@@ -43,7 +43,7 @@ const sendmail = (directory, files) => {
 	    message
 	  }
 	}, (error, resp) => {
-		console.log('EMAILED FILES' : files)
+		console.log('EMAILED FILES' , files)
 		if(!error) {
 			for (const file of files) {
 			    fs.unlink(path.join(directory, file), err => {
