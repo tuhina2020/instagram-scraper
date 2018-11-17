@@ -30,6 +30,11 @@ const sendmail = (directory, files) => {
         'email': 'tuhina@elanic.in',
         'name': 'Tuhina',
         'type': 'to'
+      },
+      {
+        'email': 'krishna.kulkarni@elanic.in',
+        'name': 'Krishna',
+        'type': 'to'
       }],
       important: false,
       merge: true,
