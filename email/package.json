@@ -1,0 +1,20 @@
+{
+  "name": "email",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Tuhina Chatterjee <tuhina.chatterjee1492@gmail.com>",
+  "license": "ISC",
+  "dependencies": {
+    "async": "^2.6.1",
+    "fs": "0.0.1-security",
+    "lodash": "^4.17.11",
+    "mandrill-api": "^1.0.45",
+    "nodemailer": "^4.6.8",
+    "nodemailer-mandrill-transport": "^1.2.0",
+    "save": "^2.3.2"
+  }
+}
