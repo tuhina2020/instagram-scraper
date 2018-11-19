@@ -31,7 +31,7 @@ const sendmail = (directory, files, API_KEY, tag) => {
       attachments,
       from_email: 'no-reply@elanic.co',
       from_name: 'Elanic',
-      subject: 'Instagram Scraper Results',
+      subject: 'Instagram Scraper Results for ' + tag + ' on ' + new Date().toISOString().split('T')[0],
       headers: {
         'Reply-To': 'reach@elanic.in'
       },
