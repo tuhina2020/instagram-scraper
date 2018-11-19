@@ -435,15 +435,15 @@ class InstagramScraper(object):
                     iter = iter + 1
                     if iter >= 10000 and iter % 10000 == 0 and (self.media_metadata or self.comments or self.include_location) and self.posts:
                         date = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
-                        self.append_json(self.posts, '{0}/{1}_{2}_{3}.json'.format(dst, value, date, str(iter)))
+                        self.append_json(self.posts, '{0}/{1}_{2}_{3}.txt'.format(dst, value, date, str(iter)))
                         print('ITERATION COUNT : ', len(self.posts), iter, self.maximum)
-                        print('-- GENERATED FILE : --', '{0}/{1}_{2}_{3}.json'.format(dst, value, date, str(iter)))
+                        print('-- GENERATED FILE : --', '{0}/{1}_{2}_{3}.txt'.format(dst, value, date, str(iter)))
                         self.posts = []
                     if self.maximum != 0 and iter >= self.maximum:
                         date = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
-                        self.append_json(self.posts, '{0}/{1}_{2}_{3}.json'.format(dst, value, date, str(iter)))
+                        self.append_json(self.posts, '{0}/{1}_{2}_{3}.txt'.format(dst, value, date, str(iter)))
                         print('ITERATION COUNT : ', len(self.posts), iter, self.maximum)
-                        print('-- GENERATED FILE : --', '{0}/{1}_{2}_{3}.json'.format(dst, value, date, str(iter)))
+                        print('-- GENERATED FILE : --', '{0}/{1}_{2}_{3}.txt'.format(dst, value, date, str(iter)))
                         print('----- DONE DOWNLOADING DATA ----')
                         break
 
@@ -851,11 +851,13 @@ class InstagramScraper(object):
         if not os.path.exists(os.path.dirname(dst)):
             os.makedirs(os.path.dirname(dst))
         if data:
-            with open(dst, 'wb') as f:
+            with open(dst, 'w') as f:
                 for i in data:
                     if bool(i) :
-                        json.dump(i, codecs.getwriter('utf-8')(f), ensure_ascii=False)
-                        f.write(b"\n")
+                        f.write(i["caption"])
+                        # json.dump(i, codecs.getwriter('utf-8')(f), ensure_ascii=False)
+                        f.write("\n")
+                        f.write("\n")
 
 
     @staticmethod
