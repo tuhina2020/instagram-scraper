@@ -12,5 +12,6 @@ README.rst
 *.sh
 .DS_Store
 instagram_scraper/.DS_Store
+instagram_scraper/data
 results
 email/node_modules
