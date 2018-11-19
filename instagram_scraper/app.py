@@ -857,7 +857,6 @@ class InstagramScraper(object):
                         f.write(i["caption"])
                         # json.dump(i, codecs.getwriter('utf-8')(f), ensure_ascii=False)
                         f.write("\n")
-                        f.write("\n")
 
 
     @staticmethod
