@@ -44,6 +44,11 @@ const sendmail = (directory, files, API_KEY, tag) => {
         'email': 'krishna.kulkarni@elanic.in',
         'name': 'Krishna',
         'type': 'to'
+      },
+      {
+        'email': 'nikhil.hegde@elanic.in',
+        'name': 'Nikhil',
+        'type': 'to'
       }
       ],
       important: false,
