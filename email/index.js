@@ -35,11 +35,7 @@ const sendmail = (directory, files, API_KEY, tag) => {
       headers: {
         'Reply-To': 'reach@elanic.in'
       },
-      to: [{
-        'email': 'tuhina@elanic.in',
-        'name': 'Tuhina',
-        'type': 'to'
-      },
+      to: [
       {
         'email': 'krishna.kulkarni@elanic.in',
         'name': 'Krishna',
